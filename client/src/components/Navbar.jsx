@@ -4,8 +4,15 @@ import { assets } from '../assets/assets.js';
 import { AppContext } from '../context/AppContext.jsx';
 
 function Navbar() {
-  const { user, setShowLogin } = useContext(AppContext);
+  const { user, setShowLogin, credit, loadingUser, logout } =
+    useContext(AppContext);
+  console.log('navbaruser', user);
   const navigate = useNavigate();
+
+  if (loadingUser) {
+    return <div className="text-sm text-gray-500">Loading...</div>;
+  }
+
   return (
     <div className="flex items-center justify-between py-4">
       <Link to="/">
@@ -21,10 +28,10 @@ function Navbar() {
                 onClick={() => navigate('/buy')}
                 className="text-xs sm:text-sm font-medium text-gray-600"
               >
-                Credits left : 50
+                Credits left : {credit}
               </p>
             </button>
-            <p className="text-gray-600 max-sm:hidden pl-4">Hi, sbhi</p>
+            <p className="text-gray-600 max-sm:hidden pl-4">Hi, {user.name}</p>
             <div className="relative group">
               <img
                 className="w-10 drop-shadow"
@@ -33,7 +40,7 @@ function Navbar() {
               />
               <div className="absolute hidden group-hover:block top-0 right-0 z-10 text-black rounded pt-12">
                 <ul className="m-0 p-2 bg-white rounded-md border text-sm">
-                  <li className="py-1 px-2 cursor-pointer pr-10">Logout</li>
+                  <li className="py-1 px-2 cursor-pointer pr-10" onClick={logout}>Logout</li>
                 </ul>
               </div>
             </div>

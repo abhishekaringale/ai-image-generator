@@ -1,6 +1,8 @@
 import { useContext, useState } from 'react';
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+
 import Home from './pages/Home';
 import Result from './pages/Result';
 import BuyCredit from './pages/BuyCredit';
@@ -10,10 +12,11 @@ import Login from './components/Login';
 import { AppContext } from './context/AppContext';
 
 function App() {
-  const { showLogin } = useContext(AppContext);
+  const { showLogin ,user} = useContext(AppContext);
   return (
     <>
       <div className="px-4 sm:px-10 md:px-14 lg:px-28 min-h-screen bg-gradient-to-b from-teal-50 to-orange-50">
+        <Toaster/>
         <Navbar />
         {showLogin && <Login />}
         <Routes>

@@ -1,13 +1,62 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import Model from './Modal';
 import { assets } from '../assets/assets';
+import { AppContext } from '../context/AppContext';
+import {toast} from 'react-hot-toast';
 
 function Login() {
   const [state, setState] = useState('Login');
+  const { setShowLogin, setUser ,setCredit} = useContext(AppContext);
+  const [formData, setFormData] = useState({
+    name: '',
+    password: '',
+    email: '',
+  });
+
+  function handleChange(e) {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+
+    const url =
+      state == 'Login'
+        ? `${import.meta.env.VITE_BACKEND_URL}/api/user/login`
+        : `${import.meta.env.VITE_BACKEND_URL}/api/user/register`;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowLogin(false);
+        console.log("data",data)
+        setUser(data.user);
+        setCredit(data.user.credit)
+          
+        toast.success(data.message);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  }
+
   return (
     <div>
       <Model>
-        <form action="" className="text-slate-500 mt-2">
+        <form action="" className="text-slate-500 mt-2" onSubmit={onSubmit}>
           <h1 className="text-center text-3xl text-neutral-700 font-medium">
             {state}
           </h1>
@@ -21,9 +70,11 @@ function Login() {
               <input
                 type="text"
                 placeholder="Full Name"
-                id=""
                 required
                 className="outline-none text-sm"
+                onChange={handleChange}
+                value={formData.name}
+                name="name"
               />
             </div>
           )}
@@ -35,6 +86,9 @@ function Login() {
               id=""
               required
               className="outline-none text-sm"
+              onChange={handleChange}
+              value={formData.email}
+              name="email"
             />
           </div>
           <div className="border px-6 py-2 flex items-center gap-2 rounded-full mt-5">
@@ -45,6 +99,9 @@ function Login() {
               id=""
               required
               className="outline-none text-sm"
+              onChange={handleChange}
+              value={formData.password}
+              name="password"
             />
           </div>
 
@@ -59,12 +116,22 @@ function Login() {
           {state === 'Login' ? (
             <p className="mt-5 text-center">
               Don't have an account?
-              <span className="text-blue-600 cursor-pointer" onClick={()=>setState('Sign Up')}>Sign Up</span>
+              <span
+                className="text-blue-600 cursor-pointer"
+                onClick={() => setState('Sign Up')}
+              >
+                Sign Up
+              </span>
             </p>
           ) : (
             <p className="mt-5 text-center">
               Already have an account?
-              <span className="text-blue-600 cursor-pointer" onClick={()=>setState('Login')}>Login</span>
+              <span
+                className="text-blue-600 cursor-pointer"
+                onClick={() => setState('Login')}
+              >
+                Login
+              </span>
             </p>
           )}
         </form>
