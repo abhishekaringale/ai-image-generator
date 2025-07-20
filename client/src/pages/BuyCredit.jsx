@@ -2,8 +2,73 @@ import React, { useContext } from 'react';
 import { assets, plans } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 function BuyCredit() {
-  const { user } = useContext(AppContext);
+  const { user, backendUrl, loadCreditsData, setShowLogin } =
+    useContext(AppContext);
+
+  const navigate = useNavigate();
+
+  const initpay = async (order) => {
+    const options = {
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
+      name: 'Credits Payment',
+      desciption: 'Credit Payment',
+      order_id: order.id,
+      receipt: order.receipt,
+      handler: async (response) => {
+        console.log(response);
+        try {
+          const res = await fetch(`${backendUrl}/api/user/verify-razor`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ response }),
+          });
+          const data=await res.json();
+          if(data.success){
+            loadCreditsData();
+            navigate('/');
+            toast.success('Credits Added')
+          }
+        } catch (error) {
+          toast.error(error.message);
+        }
+      },
+    };
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+    rzp.on('payment.failed', function (response) {
+      toast.error('Payment Failed');
+      console.error(response.error);
+    });
+  };
+  const paymentRazorpay = async (planId) => {
+    try {
+      if (!user) {
+        setShowLogin(true);
+      }
+      const res = await fetch(`${backendUrl}/api/user/pay-razor`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ planId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        initpay(data.order);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0.2, y: 100 }}
@@ -32,7 +97,10 @@ function BuyCredit() {
                 <span className="text-3xl font-medium">${item.price}</span>/
                 {item.credits} credits
               </p>
-              <button className="w-full bg-gray-800 text-white mt-8 text-sm rounded-md py-2.5 cursor-pointer">
+              <button
+                onClick={() => paymentRazorpay(item.id)}
+                className="w-full bg-gray-800 text-white mt-8 text-sm rounded-md py-2.5 cursor-pointer"
+              >
                 {user ? 'purchase' : 'Get Started'}
               </button>
             </div>

@@ -42,13 +42,10 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('before');
     const user = await userModel.findOne({ email });
-    console.log(user);
     if (!user) {
       return res.json({ success: false, message: 'User does not exists.' });
     }
-    console.log('user not exist');
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (isMatch) {
@@ -103,12 +100,13 @@ export const userCredits = async (req, res) => {
 
 export const razorpayInstance = new razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  KEY_secret: process.env.RAZORPAY_KEY_SECRET,
+  key_secret: process.env.RAZORPAY_KEY_SECRET, // ✅ FIXED
 });
 
 export const paymentRazorpay = async (req, res) => {
   try {
-    const { userId, planId } = req.body;
+    const { planId } = req.body;
+    const userId = req.userId;
     const userData = await userModel.findById(userId);
 
     if (!userId || !planId) {
@@ -147,13 +145,42 @@ export const paymentRazorpay = async (req, res) => {
       receipt: newTransaction._id,
     };
 
-    await razorpayInstance.orders.create(options, (error, order) => {
+    razorpayInstance.orders.create(options, (error, order) => {
       if (error) {
         console.log(error);
         return res.json({ success: false, message: error });
       }
       res.json({ success: true, order });
     });
+    console.log(process.env.RAZORPAY_KEY_ID, process.env.RAZORPAY_KEY_SECRET);
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const verifyRazorpay = async (req, res) => {
+  try {
+    const { razorpay_order_id } = req.body.response;
+    const orderinfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+
+    if (orderinfo.status == 'paid') {
+      const trasactionData = await transactionModel.findById(orderinfo.receipt);
+      if (trasactionData.payment) {
+        return res.json({ success: false, message: 'Payment Failed' });
+      }
+      const userData = await userModel.findById(trasactionData.userId);
+
+      const creditBalance = userData.creditBalance + trasactionData.credits;
+      await userModel.findByIdAndUpdate(userData._id, { creditBalance });
+
+      await transactionModel.findByIdAndUpdate(trasactionData._id, {
+        payment: true,
+      });
+      res.json({ success: true, message: 'Credits Added' });
+    } else {
+      res.json({ success: false, message: 'Payment Failed' });
+    }
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
